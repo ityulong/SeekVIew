@@ -1,4 +1,4 @@
-package xaircraft.seekview;
+package xaircraft.seekview.view;
 
 
 import android.content.Context;
@@ -12,6 +12,7 @@ import android.util.SparseArray;
 import android.view.MotionEvent;
 import android.view.View;
 
+import xaircraft.seekview.R;
 import xaircraft.seekview.help.Utils;
 
 public class AreaSeek extends View {
@@ -42,7 +43,7 @@ public class AreaSeek extends View {
     private final int PADDING_LEFT = 30;
     private final int PADDING_RIGHT = 30;
     private final int PADDING_TOP = 30;
-    private final int PADDING_BOTTOM = 30;
+    private final int PADDING_BOTTOM = 0;
     private int mCount = 0;
 
     private int mThumbWidth = 50;
@@ -214,26 +215,26 @@ public class AreaSeek extends View {
 
     private int getLineLeftX(int lineIndex) {
         if (mLeftToRight) {
-            return (int) (firstLineX - tickWidth / 2 + tickWidth * lineIndex);
+            return (int) (firstLineX - tickWidth / 2 + tickWidth * (lineIndex-mMin));
         } else {
-            return (int) (firstLineX - tickWidth / 2 - tickWidth * lineIndex);
+            return (int) (firstLineX - tickWidth / 2 - tickWidth * (lineIndex-mMin));
         }
     }
 
 
     private int getLineCenterX(int lineIndex) {
         if (mLeftToRight) {
-            return (int) (firstLineX + tickWidth * lineIndex);
+            return (int) (firstLineX + tickWidth * (lineIndex-mMin));
         } else {
-            return (int) (firstLineX - tickWidth * lineIndex);
+            return (int) (firstLineX - tickWidth * (lineIndex-mMin));
         }
     }
 
     private int getLineRightX(int lineIndex) {
         if (mLeftToRight) {
-            return (int) (firstLineX + tickWidth / 2 + tickWidth * lineIndex);
+            return (int) (firstLineX + tickWidth / 2 + tickWidth * (lineIndex-mMin));
         } else {
-            return (int) (firstLineX + tickWidth / 2 - tickWidth * lineIndex);
+            return (int) (firstLineX + tickWidth / 2 - tickWidth * (lineIndex-mMin));
         }
     }
 
@@ -258,7 +259,7 @@ public class AreaSeek extends View {
         super.onDraw(canvas);
         mFillPaint.setColor(0xFFEEFFEE);
         int width = getWidth();
-        int height = getHeight();
+        int height = getHeight() - mThumbWidth/2;
         int left = 0;
         int right = width;
         int top = 0;
@@ -272,7 +273,8 @@ public class AreaSeek extends View {
             firstLineX = mLeftToRight ? PADDING_LEFT + tickWidth / 2 : width - PADDING_RIGHT - tickWidth / 2;
 
             mFillPaint.setColor(0xFFEEEEEE);
-            canvas.drawRect(getLineLeftX(0), top + PADDING_TOP, getLineRightX(count - 1), bottom - PADDING_BOTTOM, mFillPaint);
+            mFillPaint.setColor(0xFFEEEEEE);
+            canvas.drawRect(getLineLeftX(mMin), top + PADDING_TOP, getLineRightX(count - 1), bottom - PADDING_BOTTOM, mFillPaint);
 
             for (int i = 0; i < count; i++) {
                 int lineX = getLineLeftX(i);
@@ -347,29 +349,29 @@ public class AreaSeek extends View {
         if (mLeftToRight) {
             switch (gravity) {
                 case GRAVITY_LEFT:
-                    left = (int) (firstLineX + tickWidth * lineIndex - halfThumbWidth);
+                    left = (int) (firstLineX + tickWidth * (lineIndex-mMin) - halfThumbWidth);
                     break;
                 case GRAVITY_RIGHT:
-                    left = (int) (firstLineX + tickWidth * lineIndex - halfThumbWidth);
+                    left = (int) (firstLineX + tickWidth * (lineIndex-mMin) - halfThumbWidth);
                     break;
                 default:
-                    left = (int) (firstLineX + tickWidth * lineIndex);
+                    left = (int) (firstLineX + tickWidth * (lineIndex-mMin));
             }
         } else {
             switch (gravity) {
                 case GRAVITY_LEFT:
-                    left = (int) (firstLineX - tickWidth * lineIndex - halfThumbWidth);
+                    left = (int) (firstLineX - tickWidth * (lineIndex-mMin) - halfThumbWidth);
                     break;
                 case GRAVITY_RIGHT:
-                    left = (int) (firstLineX - tickWidth * lineIndex - halfThumbWidth);
+                    left = (int) (firstLineX - tickWidth * (lineIndex-mMin) - halfThumbWidth);
                     break;
                 default:
-                    left = (int) (firstLineX - tickWidth * lineIndex);
+                    left = (int) (firstLineX - tickWidth * (lineIndex-mMin));
             }
         }
 
         int areaTop = PADDING_TOP;
-        int areaBottom = getHeight() - PADDING_BOTTOM;
+        int areaBottom = getHeight() - PADDING_BOTTOM - halfThumbWidth;
 
 
         String str = String.valueOf((lineIndex + 1));
@@ -444,7 +446,7 @@ public class AreaSeek extends View {
 
     public void setMin(int min) {
         if (min < 0) throw new IllegalArgumentException("min must >= 0");
-        if (min > mMin) throw new IllegalArgumentException("min must <= max");
+        if (min > mMax) throw new IllegalArgumentException("min must <= max");
 
         mMin = min;
         mCount = mMax - mMin + 1;

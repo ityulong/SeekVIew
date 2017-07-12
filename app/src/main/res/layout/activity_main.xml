@@ -4,13 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context="xaircraft.seekview.MainActivity">
 
-    <xaircraft.seekview.AreaSeek
+    <xaircraft.seekview.view.AreaSeek
         android:id="@+id/my_area_seek"
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:padding="40dp"
         />
-
+    <xaircraft.seekview.view.ThumbnailSeek
+        android:id="@+id/my_th_seek"
+        android:background="#633636"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 </LinearLayout>
