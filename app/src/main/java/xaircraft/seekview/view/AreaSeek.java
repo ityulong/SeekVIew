@@ -17,7 +17,7 @@ import java.util.List;
 
 import xaircraft.seekview.R;
 import xaircraft.seekview.help.Utils;
-import xaircraft.seekview.model.AirLineStatus;
+import xaircraft.seekview.model.ILineStatus;
 
 public class AreaSeek extends View {
 
@@ -74,7 +74,7 @@ public class AreaSeek extends View {
     private boolean mLockStart;
     private boolean mLockEnd;
 
-    private SparseArray<AirLineStatus> selectLines = new SparseArray<>();
+    private SparseArray<ILineStatus> selectLines = new SparseArray<>();
 
     public AreaSeek(Context context) {
         this(context, null, 0);
@@ -295,13 +295,13 @@ public class AreaSeek extends View {
 //                }
 
                 if (selectLines.size() > 0) {
-                    int index = selectLines.indexOfKey(i);
+                    int key = selectLines.indexOfKey(i);
 
-                    Log.d("draw_finish", "index is " + index);
+                    Log.d("draw_finish", "key is " + key);
                     if (selectLines.get(i) == null)
-                        Log.d("draw_finish", "index:" + index + " is " + "null");
+                        Log.d("draw_finish", "key:" + key + " is " + "null");
 
-                    if (index >= 0 && selectLines.get(i).isFinished()) {
+                    if (key >= 0 && selectLines.get(i).isFinished()) {
                         mFillPaint.setColor(mCompletedColor);
                         canvas.drawRect(lineX, top + PADDING_TOP, lineX + tickWidth, bottom - PADDING_BOTTOM, mFillPaint);
                     }
@@ -496,10 +496,10 @@ public class AreaSeek extends View {
 //        }
 //    }
 
-    public void setCompletedLines(List<AirLineStatus> lines) {
+    public void setCompletedLines(List<? extends ILineStatus> lines) {
         selectLines.clear();
         if (lines == null) return;
-        for (AirLineStatus item : lines) {
+        for (ILineStatus item : lines) {
             selectLines.put(item.getIndex(), item);
         }
     }

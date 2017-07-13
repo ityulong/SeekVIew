@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -15,7 +14,7 @@ import java.util.List;
 
 import xaircraft.seekview.R;
 import xaircraft.seekview.help.Utils;
-import xaircraft.seekview.model.AirLineStatus;
+import xaircraft.seekview.model.ILineStatus;
 
 /**
  * Created by chenyulong on 2017/7/11.
@@ -47,7 +46,7 @@ public class ThumbnailSeek extends View {
 
     private Rect dragRect = new Rect();
     private float dragScale;
-    private RectF rectBar;
+    private Rect rectBar;
 
     private int bStartCount;
     private int bEndCount;
@@ -60,7 +59,7 @@ public class ThumbnailSeek extends View {
 
     private OnDragBarListener mDragListener;
 
-    private List<AirLineStatus> lines;
+    private List<? extends ILineStatus> lines;
 
     private float perPxLine;
     private float perLinePx;
@@ -145,13 +144,13 @@ public class ThumbnailSeek extends View {
 
                 float startCountS = (float) (dragRect.left - rectBar.left) / (rectBar.width());
                 float endCountS = (float) (dragRect.right - rectBar.left) / (rectBar.width());
-                bStartCount = (int) (1000 * startCountS);
-                bEndCount = (int) (1000 * endCountS);
+                bStartCount = (int) (mCount * startCountS);
+                bEndCount = (int) (mCount * endCountS);
                 if (bEndCount == mCount) {
                     bEndCount = mCount - 1;
                 }
                 if (mDragListener != null) {
-                    List<AirLineStatus> subLines = lines.subList(bStartCount, bEndCount);
+                    List<? extends ILineStatus> subLines = lines.subList(bStartCount, bEndCount);
                     mDragListener.OnChange(bStartCount, bEndCount, subLines);
                 }
                 invalidate();
@@ -194,27 +193,26 @@ public class ThumbnailSeek extends View {
             int rTop = height / 2 - barHeight / 2;
             int rRight = width - (int) eTextWidth;
             int rBottom = height / 2 + barHeight / 2;
-            rectBar = new RectF(rLeft, rTop, rRight, rBottom);
-            perPxLine = mCount / rectBar.width();
-            perLinePx = rectBar.width() / mCount;
-            canvas.drawRoundRect(rectBar, 25, 25, mFillPaint);
+            rectBar = new Rect(rLeft, rTop, rRight, rBottom);
+            perPxLine = (float) mCount / rectBar.width();
+            perLinePx = (float) rectBar.width() / mCount;
+            canvas.drawRect(rectBar, mFillPaint);
             //画矩形边框
             mStrokePaint.setColor(barBorderColor);
-            canvas.drawRoundRect(rectBar, 25, 25, mStrokePaint);
+            canvas.drawRect(rectBar, mStrokePaint);
 
             //画已经完成的航线
             int finishCount = 0;
             int startNumber = 0;
             for (int i = 0; i < lines.size(); i++) {
-                AirLineStatus line = lines.get(i);
+                ILineStatus line = lines.get(i);
                 if (line.isFinished()) {
                     //记录从第几条航向开始画已完成的航线
                     if (finishCount == 0)
                         startNumber = line.getIndex();
                     finishCount++;
                     //如果下一个未完成就画已完成的航线，并且清零
-                    if (!lines.get(i + 1).isFinished()) {
-                        //// TODO: 2017/7/12  画已完成的航线
+                    if (i + 1 < lines.size() && !lines.get(i + 1).isFinished()) {
                         drawaFinishLines(startNumber, finishCount, canvas);
                         Log.d("draw_finish_line", "start position:" + startNumber + ", finish count:" + finishCount);
                         finishCount = 0;
@@ -298,15 +296,15 @@ public class ThumbnailSeek extends View {
     }
 
     public interface OnDragBarListener {
-        void OnChange(int start, int end,List<AirLineStatus> lines);
+        void OnChange(int start, int end, List<? extends ILineStatus> lines);
     }
 
-    public void setLines(List<AirLineStatus> lines) {
+    public void setLines(List<? extends ILineStatus> lines) {
         if (lines != null && lines.size() > 0)
             this.lines = lines;
     }
 
-    public void drawaFinishLines(int start, int count,Canvas canvas) {
+    public void drawaFinishLines(int start, int count, Canvas canvas) {
         //当只有一个像素的时候需要几条航线，如果小于这个值就不画线
         if (count > perPxLine) {
             int left = (int) (rectBar.left + start * perLinePx + 0.5);
@@ -315,6 +313,7 @@ public class ThumbnailSeek extends View {
             int bottom = (int) rectBar.bottom;
             Rect rect = new Rect(left, top, right, bottom);
             mFillPaint.setColor(0XFF00FF00);
+            Log.d("draw_finish_rect", rect.toString());
             canvas.drawRect(rect, mFillPaint);
         }
 
