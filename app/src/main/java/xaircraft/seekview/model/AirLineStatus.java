@@ -29,4 +29,6 @@ public abstract class AirLineStatus implements ILineStatus {
     public void setIndex(int index) {
         mIndex = index;
     }
+
+
 }

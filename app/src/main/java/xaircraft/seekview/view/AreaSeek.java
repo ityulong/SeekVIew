@@ -281,7 +281,8 @@ public class AreaSeek extends View {
             mFillPaint.setColor(0xFFEEEEEE);
             canvas.drawRect(getLineLeftX(0), top + PADDING_TOP, getLineRightX(count - 1), bottom - PADDING_BOTTOM, mFillPaint);
 
-            for (int i = mMin; i < mMax; i++) {
+            Log.d("draw_min_max", "min is " + mMin + ",max is " + mMax);
+            for (int i = mMin; i <= mMax; i++) {
                 int lineX = getLineLeftX(i - mMin);
 
 
@@ -295,13 +296,14 @@ public class AreaSeek extends View {
 //                }
 
                 if (selectLines.size() > 0) {
-                    int key = selectLines.indexOfKey(i);
+                    int index = selectLines.indexOfKey(i);
 
-                    Log.d("draw_finish", "key is " + key);
-                    if (selectLines.get(i) == null)
-                        Log.d("draw_finish", "key:" + key + " is " + "null");
+                    Log.d("draw_finish_key", "key is " + selectLines.keyAt(index) + ",index is " + index);
+//                    if (selectLines.get(i) == null)
+//                        Log.d("draw_finish", "key:" + key + " is " + "null");
 
-                    if (key >= 0 && selectLines.get(i).isFinished()) {
+                    if (index >= 0 && selectLines.get(i).isFinished()) {
+                        Log.d("draw_finish_rect_key", "key:" + selectLines.keyAt(index));
                         mFillPaint.setColor(mCompletedColor);
                         canvas.drawRect(lineX, top + PADDING_TOP, lineX + tickWidth, bottom - PADDING_BOTTOM, mFillPaint);
                     }

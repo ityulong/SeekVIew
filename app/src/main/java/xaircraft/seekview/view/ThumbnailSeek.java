@@ -150,8 +150,11 @@ public class ThumbnailSeek extends View {
                     bEndCount = mCount - 1;
                 }
                 if (mDragListener != null) {
-                    List<? extends ILineStatus> subLines = lines.subList(bStartCount, bEndCount);
+                    List<? extends ILineStatus> subLines = lines.subList(bStartCount, bEndCount + 1);
                     mDragListener.OnChange(bStartCount, bEndCount, subLines);
+                    Log.d("sub_lines", "start:" + bStartCount + ", end:" + bEndCount);
+                    Log.d("sub_lines", "in sub list ,start:" + subLines.get(0).getIndex() + ", end:" + subLines.get(subLines.size() - 1).getIndex());
+
                 }
                 invalidate();
             }
@@ -212,7 +215,11 @@ public class ThumbnailSeek extends View {
                         startNumber = line.getIndex();
                     finishCount++;
                     //如果下一个未完成就画已完成的航线，并且清零
-                    if (i + 1 < lines.size() && !lines.get(i + 1).isFinished()) {
+                    if ((i +1 < lines.size() && !lines.get(i + 1).isFinished())) {
+                        drawaFinishLines(startNumber, finishCount, canvas);
+                        Log.d("draw_finish_line", "start position:" + startNumber + ", finish count:" + finishCount);
+                        finishCount = 0;
+                    } else if (i + 1 == lines.size() && finishCount > 0) {
                         drawaFinishLines(startNumber, finishCount, canvas);
                         Log.d("draw_finish_line", "start position:" + startNumber + ", finish count:" + finishCount);
                         finishCount = 0;

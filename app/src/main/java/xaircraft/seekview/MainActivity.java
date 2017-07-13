@@ -13,8 +13,8 @@ import xaircraft.seekview.view.AreaSeek;
 import xaircraft.seekview.view.ThumbnailSeek;
 
 public class MainActivity extends Activity {
-    private final static int LINES_COUNT = 500;
-    private final static int SHOW_COUNT = 50;
+    private final static int LINES_COUNT = 2000;
+    private final static int SHOW_COUNT = 200;
 
     private AreaSeek mSeek;
 
