@@ -11,8 +11,11 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.util.List;
+
 import xaircraft.seekview.R;
 import xaircraft.seekview.help.Utils;
+import xaircraft.seekview.model.AirLineStatus;
 
 /**
  * Created by chenyulong on 2017/7/11.
@@ -31,7 +34,7 @@ public class ThumbnailSeek extends View {
     private int mCount;
     //unit dp
     private static final float BAR_HEIGHT = 25;
-    private static final int DRAG_HEIGHT= 35;
+    private static final int DRAG_HEIGHT = 35;
 
     private int barHeight;
 
@@ -49,7 +52,19 @@ public class ThumbnailSeek extends View {
     private int bStartCount;
     private int bEndCount;
 
+    private int dragColor = 0X88C7AFAF;
+    private int dragBorderColor = 0Xff000000;
+
+    private int barColor = 0xFFFFFFFF;
+    private int barBorderColor = 0X88C7AFAF;
+
     private OnDragBarListener mDragListener;
+
+    private List<AirLineStatus> lines;
+
+    private float perPxLine;
+    private float perLinePx;
+
 
     public ThumbnailSeek(Context context) {
         this(context, null);
@@ -72,11 +87,11 @@ public class ThumbnailSeek extends View {
 
         mStartThumbDrawable = getResources().getDrawable(R.drawable.widget_area_seekbar_btn_start);
 
+
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        // TODO Auto-generated method stub
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         int width = measureDimension(200, widthMeasureSpec);
         int height = measureDimension(200, heightMeasureSpec);
@@ -114,31 +129,35 @@ public class ThumbnailSeek extends View {
             }
             return true;
         } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
-            if(dClicked){
+            if (dClicked) {
                 int x = (int) event.getX();
                 isFirstDraw = false;
                 dragRect.left = x - dragWidth / 2;
                 dragRect.right = x + dragWidth / 2;
 
-                if(dragRect.left < rectBar.left){
-                    dragRect.left = (int)rectBar.left;
+                if (dragRect.left < rectBar.left) {
+                    dragRect.left = (int) rectBar.left;
                     dragRect.right = dragRect.left + dragWidth;
-                }else if(dragRect.right > rectBar.right){
-                    dragRect.right = (int)rectBar.right;
-                    dragRect.left = (int)rectBar.right - dragWidth;
+                } else if (dragRect.right > rectBar.right) {
+                    dragRect.right = (int) rectBar.right;
+                    dragRect.left = (int) rectBar.right - dragWidth;
                 }
 
-                float startCountS = (float)(dragRect.left - rectBar.left) / (rectBar.width());
-                float endCountS = (float)(dragRect.right - rectBar.left) / (rectBar.width());
-                bStartCount = (int)(1000 * startCountS);
-                bEndCount = (int)(1000 * endCountS);
+                float startCountS = (float) (dragRect.left - rectBar.left) / (rectBar.width());
+                float endCountS = (float) (dragRect.right - rectBar.left) / (rectBar.width());
+                bStartCount = (int) (1000 * startCountS);
+                bEndCount = (int) (1000 * endCountS);
+                if (bEndCount == mCount) {
+                    bEndCount = mCount - 1;
+                }
                 if (mDragListener != null) {
-                    mDragListener.OnChange(bStartCount, bEndCount);
+                    List<AirLineStatus> subLines = lines.subList(bStartCount, bEndCount);
+                    mDragListener.OnChange(bStartCount, bEndCount, subLines);
                 }
                 invalidate();
             }
             return true;
-        }else if (event.getAction() == MotionEvent.ACTION_UP){
+        } else if (event.getAction() == MotionEvent.ACTION_UP) {
             dClicked = false;
         }
 
@@ -147,8 +166,8 @@ public class ThumbnailSeek extends View {
 
     public void setCountScale(int count, int showNumber) {
         mCount = count;
-        if(mCount > showNumber)
-            dragScale = (float)showNumber/mCount;
+        if (mCount > showNumber)
+            dragScale = (float) showNumber / mCount;
         else
             throw new RuntimeException("showNumber > count");
         invalidate();
@@ -165,42 +184,73 @@ public class ThumbnailSeek extends View {
             mFillPaint.setTextSize(30);
             float sTextWidth = mFillPaint.measureText(startStr);
             float eTextWidth = mFillPaint.measureText(endStr);
-
             Rect parentR = new Rect(0, 0, width, height);
             drawTextToRect(startStr, endStr, parentR, TEXT_GRAVITY_INTERNAL, canvas);
 
 
             //画矩形
-            mFillPaint.setColor(0x88008866);
+            mFillPaint.setColor(barColor);
             int rLeft = (int) sTextWidth + 2;
             int rTop = height / 2 - barHeight / 2;
             int rRight = width - (int) eTextWidth;
             int rBottom = height / 2 + barHeight / 2;
             rectBar = new RectF(rLeft, rTop, rRight, rBottom);
+            perPxLine = mCount / rectBar.width();
+            perLinePx = rectBar.width() / mCount;
             canvas.drawRoundRect(rectBar, 25, 25, mFillPaint);
+            //画矩形边框
+            mStrokePaint.setColor(barBorderColor);
+            canvas.drawRoundRect(rectBar, 25, 25, mStrokePaint);
+
+            //画已经完成的航线
+            int finishCount = 0;
+            int startNumber = 0;
+            for (int i = 0; i < lines.size(); i++) {
+                AirLineStatus line = lines.get(i);
+                if (line.isFinished()) {
+                    //记录从第几条航向开始画已完成的航线
+                    if (finishCount == 0)
+                        startNumber = line.getIndex();
+                    finishCount++;
+                    //如果下一个未完成就画已完成的航线，并且清零
+                    if (!lines.get(i + 1).isFinished()) {
+                        //// TODO: 2017/7/12  画已完成的航线
+                        drawaFinishLines(startNumber, finishCount, canvas);
+                        Log.d("draw_finish_line", "start position:" + startNumber + ", finish count:" + finishCount);
+                        finishCount = 0;
+                    }
+                }
+            }
 
             //画拖动框
-            if(isFirstDraw){
-                dragWidth = (int)((rRight - rLeft) * dragScale);
+            if (isFirstDraw) {
+                dragWidth = (int) ((rRight - rLeft) * dragScale);
                 int Left = (int) sTextWidth + 2;
                 int Top = height / 2 - dragHeight / 2;
                 int Right = Left + dragWidth;
                 int Bottom = Top + dragHeight;
                 dragRect.set(Left, Top, Right, Bottom);
-                mFillPaint.setColor(0x88ffffff);
-                canvas.drawRect(dragRect,mFillPaint);
-            }else{
+                mFillPaint.setColor(dragColor);
+                canvas.drawRect(dragRect, mFillPaint);
+                mStrokePaint.setColor(dragBorderColor);
+                canvas.drawRect(dragRect, mStrokePaint);
 
-                mFillPaint.setColor(0x88ffffff);
-                canvas.drawRect(dragRect,mFillPaint);
+            } else {
+
+                mFillPaint.setColor(dragColor);
+                canvas.drawRect(dragRect, mFillPaint);
+                mStrokePaint.setColor(dragBorderColor);
+                canvas.drawRect(dragRect, mStrokePaint);
                 Log.d("draw rect", dragRect.toString());
                 //画拖动框上面的文字
 
-                String startCountStr = String.valueOf(bStartCount);
-                String endCountStr = String.valueOf(bEndCount);
+                String startCountStr = String.valueOf(bStartCount + 1);
+                String endCountStr = String.valueOf(bEndCount + 1);
                 drawTextToRect(startCountStr, endCountStr, dragRect, TEXT_GRAVITY_TOP, canvas);
 
             }
+
+
         }
     }
 
@@ -210,12 +260,12 @@ public class ThumbnailSeek extends View {
         mStartThumbDrawable.setState(getDrawableState());
     }
 
-    public void drawTextToRect(String startStr, String endStr, Rect rect, int gravity,Canvas canvas) {
+    public void drawTextToRect(String startStr, String endStr, Rect rect, int gravity, Canvas canvas) {
 
         mFillPaint.setColor(0xFF999999);
         float sTextWidth = mFillPaint.measureText(startStr);
         float eTextWidth = mFillPaint.measureText(endStr);
-        switch (gravity){
+        switch (gravity) {
             case TEXT_GRAVITY_INTERNAL: {
                 //开始和结束text
                 mFillPaint.setTextSize(30);
@@ -243,11 +293,30 @@ public class ThumbnailSeek extends View {
 
     }
 
-    public void setDragListener(OnDragBarListener listener){
+    public void setDragListener(OnDragBarListener listener) {
         this.mDragListener = listener;
     }
 
-    public interface OnDragBarListener{
-        void OnChange(int start,int end);
+    public interface OnDragBarListener {
+        void OnChange(int start, int end,List<AirLineStatus> lines);
+    }
+
+    public void setLines(List<AirLineStatus> lines) {
+        if (lines != null && lines.size() > 0)
+            this.lines = lines;
+    }
+
+    public void drawaFinishLines(int start, int count,Canvas canvas) {
+        //当只有一个像素的时候需要几条航线，如果小于这个值就不画线
+        if (count > perPxLine) {
+            int left = (int) (rectBar.left + start * perLinePx + 0.5);
+            int top = (int) rectBar.top;
+            int right = (int) (left + perLinePx * count);
+            int bottom = (int) rectBar.bottom;
+            Rect rect = new Rect(left, top, right, bottom);
+            mFillPaint.setColor(0XFF00FF00);
+            canvas.drawRect(rect, mFillPaint);
+        }
+
     }
 }

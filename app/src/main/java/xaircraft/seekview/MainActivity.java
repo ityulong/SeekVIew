@@ -3,10 +3,18 @@ package xaircraft.seekview;
 import android.app.Activity;
 import android.os.Bundle;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import xaircraft.seekview.model.AirLineStatus;
+import xaircraft.seekview.model.MyAirLine;
 import xaircraft.seekview.view.AreaSeek;
 import xaircraft.seekview.view.ThumbnailSeek;
 
 public class MainActivity extends Activity {
+    private final static int LINES_COUNT = 1000;
+    private final static int SHOW_COUNT = 20;
+
     private AreaSeek mSeek;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,12 +26,51 @@ public class MainActivity extends Activity {
         mSeek.setLeftToRight(true);
 
         ThumbnailSeek thumbnailSeek = (ThumbnailSeek) findViewById(R.id.my_th_seek);
-        thumbnailSeek.setCountScale(1000,200);
+        thumbnailSeek.setCountScale(LINES_COUNT,SHOW_COUNT);
+
+        List<AirLineStatus> status = new ArrayList<>();
+        for (int i = 0; i <LINES_COUNT ; i++) {
+            MyAirLine line = new MyAirLine();
+            line.setIndex(i);
+            if(i <100){
+                if (i % 3 == 0) {
+                    line.setFinished(true);
+                }
+            }else if(i<200){
+                if (i / 2 % 3 == 0) {
+                    line.setFinished(true);
+
+                }
+            }else if(i<300){
+                if (i / 3 % 3 == 0) {
+                    line.setFinished(true);
+                }
+            }
+            else if(i<400){
+                if (i / 4 % 3 == 0) {
+                    line.setFinished(true);
+                }
+            }
+            else if(i<500){
+                if (i / 5 % 3 == 0) {
+                    line.setFinished(true);
+                }
+            } else{
+                if (i / 20 % 3 == 0) {
+                    line.setFinished(true);
+                }
+            }
+            status.add(line);
+        }
+        thumbnailSeek.setLines(status);
         thumbnailSeek.setDragListener(new ThumbnailSeek.OnDragBarListener() {
             @Override
-            public void OnChange(int start, int end) {
-                mSeek.setMax(end);
-                mSeek.setMin(start);
+            public void OnChange(int start, int end,List<AirLineStatus> lines) {
+                synchronized (this){
+                    mSeek.setMax(end);
+                    mSeek.setMin(start);
+                    mSeek.setCompletedLines(lines);
+                }
             }
         });
 

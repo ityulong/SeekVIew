@@ -8,12 +8,16 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.util.List;
+
 import xaircraft.seekview.R;
 import xaircraft.seekview.help.Utils;
+import xaircraft.seekview.model.AirLineStatus;
 
 public class AreaSeek extends View {
 
@@ -53,7 +57,7 @@ public class AreaSeek extends View {
 
     private Drawable mStartThumbDrawable;
     private Drawable mEndThumbDrawable;
-    private SparseArray mCompletedLines = new SparseArray();
+    //    private SparseArray mCompletedLines = new SparseArray();
     //    private SparseArray mCleanupLines = new SparseArray();
     private OnSeekBarChangeListener mOnSeekBarChangeListener;
 
@@ -70,6 +74,7 @@ public class AreaSeek extends View {
     private boolean mLockStart;
     private boolean mLockEnd;
 
+    private SparseArray<AirLineStatus> selectLines = new SparseArray<>();
 
     public AreaSeek(Context context) {
         this(context, null, 0);
@@ -128,12 +133,12 @@ public class AreaSeek extends View {
                 int x = (int) event.getX();
                 int y = (int) event.getY();
 
-                if (hitTestX(x, y, mStart, TOUCH_WIDTH) && !isLockStart()) {
+                if (hitTestX(x, y, mStart - mMin, TOUCH_WIDTH) && !isLockStart()) {
                     pressWhat = THUMB_START;
                     pressLine = mStart;
                     pressX = x;
                     pressY = y;
-                } else if (hitTestX(x, y, mEnd, TOUCH_WIDTH) && !isLockEnd()) {
+                } else if (hitTestX(x, y, mEnd - mMin, TOUCH_WIDTH) && !isLockEnd()) {
                     pressWhat = THUMB_END;
                     pressLine = mEnd;
                     pressX = x;
@@ -160,9 +165,9 @@ public class AreaSeek extends View {
 
                 if (hitTest) {
                     if (pressWhat == THUMB_START) {
-                        setStart(hitCount);
+                        setStart(hitCount + mMin);
                     } else if (pressWhat == THUMB_END) {
-                        setEnd(hitCount);
+                        setEnd(hitCount + mMin);
                     }
                 }
 
@@ -215,26 +220,26 @@ public class AreaSeek extends View {
 
     private int getLineLeftX(int lineIndex) {
         if (mLeftToRight) {
-            return (int) (firstLineX - tickWidth / 2 + tickWidth * (lineIndex-mMin));
+            return (int) (firstLineX - tickWidth / 2 + tickWidth * lineIndex);
         } else {
-            return (int) (firstLineX - tickWidth / 2 - tickWidth * (lineIndex-mMin));
+            return (int) (firstLineX - tickWidth / 2 - tickWidth * lineIndex);
         }
     }
 
 
     private int getLineCenterX(int lineIndex) {
         if (mLeftToRight) {
-            return (int) (firstLineX + tickWidth * (lineIndex-mMin));
+            return (int) (firstLineX + tickWidth * lineIndex);
         } else {
-            return (int) (firstLineX - tickWidth * (lineIndex-mMin));
+            return (int) (firstLineX - tickWidth * lineIndex);
         }
     }
 
     private int getLineRightX(int lineIndex) {
         if (mLeftToRight) {
-            return (int) (firstLineX + tickWidth / 2 + tickWidth * (lineIndex-mMin));
+            return (int) (firstLineX + tickWidth / 2 + tickWidth * lineIndex);
         } else {
-            return (int) (firstLineX + tickWidth / 2 - tickWidth * (lineIndex-mMin));
+            return (int) (firstLineX + tickWidth / 2 - tickWidth * lineIndex);
         }
     }
 
@@ -259,7 +264,7 @@ public class AreaSeek extends View {
         super.onDraw(canvas);
         mFillPaint.setColor(0xFFEEFFEE);
         int width = getWidth();
-        int height = getHeight() - mThumbWidth/2;
+        int height = getHeight() - mThumbWidth / 2;
         int left = 0;
         int right = width;
         int top = 0;
@@ -274,16 +279,29 @@ public class AreaSeek extends View {
 
             mFillPaint.setColor(0xFFEEEEEE);
             mFillPaint.setColor(0xFFEEEEEE);
-            canvas.drawRect(getLineLeftX(mMin), top + PADDING_TOP, getLineRightX(count - 1), bottom - PADDING_BOTTOM, mFillPaint);
+            canvas.drawRect(getLineLeftX(0), top + PADDING_TOP, getLineRightX(count - 1), bottom - PADDING_BOTTOM, mFillPaint);
 
-            for (int i = 0; i < count; i++) {
-                int lineX = getLineLeftX(i);
+            for (int i = mMin; i < mMax; i++) {
+                int lineX = getLineLeftX(i - mMin);
 
 
                 // completed area
-                if (mCompletedLines.size() > 0) {
-                    int key = mCompletedLines.indexOfKey(i);
-                    if (key >= 0) {
+//                if (mCompletedLines.size() > 0) {
+//                    int index = mCompletedLines.indexOfKey(i);
+//                    if (index >= 0) {
+//                        mFillPaint.setColor(mCompletedColor);
+//                        canvas.drawRect(lineX, top + PADDING_TOP, lineX + tickWidth, bottom - PADDING_BOTTOM, mFillPaint);
+//                    }
+//                }
+
+                if (selectLines.size() > 0) {
+                    int index = selectLines.indexOfKey(i);
+
+                    Log.d("draw_finish", "index is " + index);
+                    if (selectLines.get(i) == null)
+                        Log.d("draw_finish", "index:" + index + " is " + "null");
+
+                    if (index >= 0 && selectLines.get(i).isFinished()) {
                         mFillPaint.setColor(mCompletedColor);
                         canvas.drawRect(lineX, top + PADDING_TOP, lineX + tickWidth, bottom - PADDING_BOTTOM, mFillPaint);
                     }
@@ -306,8 +324,8 @@ public class AreaSeek extends View {
 
             // selected area
             if (mLeftToRight) {
-                int startLineX = getLineCenterX(mStart);
-                int endLineX = getLineCenterX(mEnd);
+                int startLineX = getLineCenterX(mStart - mMin);
+                int endLineX = getLineCenterX(mEnd - mMin);
                 mFillPaint.setColor(0x80FFFF00);
                 if (isReverse()) {
                     canvas.drawRect(endLineX - tickWidth / 2, top + PADDING_TOP, startLineX + tickWidth / 2, bottom - PADDING_BOTTOM, mFillPaint);
@@ -315,8 +333,8 @@ public class AreaSeek extends View {
                     canvas.drawRect(startLineX - tickWidth / 2, top + PADDING_TOP, endLineX + tickWidth / 2, bottom - PADDING_BOTTOM, mFillPaint);
                 }
             } else {
-                int startLineX = getLineCenterX(mStart);
-                int endLineX = getLineCenterX(mEnd);
+                int startLineX = getLineCenterX(mStart - mMin);
+                int endLineX = getLineCenterX(mEnd - mMin);
                 mFillPaint.setColor(0x80FFFF00);
                 if (isReverse()) {
                     canvas.drawRect(startLineX - tickWidth / 2, top + PADDING_TOP, endLineX + tickWidth / 2, bottom - PADDING_BOTTOM, mFillPaint);
@@ -333,8 +351,8 @@ public class AreaSeek extends View {
 //            canvas.drawLine(getLineLeftX(isReverse() ? mEnd : mStart), barY, getLineRightX(isReverse() ? mStart : mEnd), barY, mStokePaint);
 
             // thumbs
-            drawThumb(canvas, mStartThumbDrawable, mStartThumbLineColor, isReverse() ? GRAVITY_RIGHT : GRAVITY_LEFT, mStart);
-            drawThumb(canvas, mEndThumbDrawable, mEndThumbLineColor, isReverse() ? GRAVITY_LEFT : GRAVITY_RIGHT, mEnd);
+            drawThumb(canvas, mStartThumbDrawable, mStartThumbLineColor, isReverse() ? GRAVITY_RIGHT : GRAVITY_LEFT, mStart - mMin);
+            drawThumb(canvas, mEndThumbDrawable, mEndThumbLineColor, isReverse() ? GRAVITY_LEFT : GRAVITY_RIGHT, mEnd - mMin);
         }
 
 
@@ -349,24 +367,24 @@ public class AreaSeek extends View {
         if (mLeftToRight) {
             switch (gravity) {
                 case GRAVITY_LEFT:
-                    left = (int) (firstLineX + tickWidth * (lineIndex-mMin) - halfThumbWidth);
+                    left = (int) (firstLineX + tickWidth * lineIndex - halfThumbWidth);
                     break;
                 case GRAVITY_RIGHT:
-                    left = (int) (firstLineX + tickWidth * (lineIndex-mMin) - halfThumbWidth);
+                    left = (int) (firstLineX + tickWidth * lineIndex - halfThumbWidth);
                     break;
                 default:
-                    left = (int) (firstLineX + tickWidth * (lineIndex-mMin));
+                    left = (int) (firstLineX + tickWidth * lineIndex);
             }
         } else {
             switch (gravity) {
                 case GRAVITY_LEFT:
-                    left = (int) (firstLineX - tickWidth * (lineIndex-mMin) - halfThumbWidth);
+                    left = (int) (firstLineX - tickWidth * lineIndex - halfThumbWidth);
                     break;
                 case GRAVITY_RIGHT:
-                    left = (int) (firstLineX - tickWidth * (lineIndex-mMin) - halfThumbWidth);
+                    left = (int) (firstLineX - tickWidth * lineIndex - halfThumbWidth);
                     break;
                 default:
-                    left = (int) (firstLineX - tickWidth * (lineIndex-mMin));
+                    left = (int) (firstLineX - tickWidth * lineIndex);
             }
         }
 
@@ -374,7 +392,7 @@ public class AreaSeek extends View {
         int areaBottom = getHeight() - PADDING_BOTTOM - halfThumbWidth;
 
 
-        String str = String.valueOf((lineIndex + 1));
+        String str = String.valueOf((lineIndex + 1 + mMin));
         mFillPaint.setColor(0xFF999999);
         mFillPaint.setTextSize(24);
         float strWidth = mFillPaint.measureText(str);
@@ -387,9 +405,11 @@ public class AreaSeek extends View {
         int right = left + thumbWidth;
         int top = areaBottom - halfThumbWidth;
         int bottom = top + thumbWidth;
+        Rect rect = new Rect(left, top, right, bottom);
+        Log.d("drawable index", "index :" + lineIndex + "," + rect.toString());
         canvas.save();
         drawable.setState(getDrawableState());
-        drawable.setBounds(left, top, right, bottom);
+        drawable.setBounds(rect);
         drawable.draw(canvas);
         canvas.restore();
 
@@ -445,40 +465,42 @@ public class AreaSeek extends View {
     }
 
     public void setMin(int min) {
-        if (min < 0) throw new IllegalArgumentException("min must >= 0");
-        if (min > mMax) throw new IllegalArgumentException("min must <= max");
 
         mMin = min;
         mCount = mMax - mMin + 1;
         setStart(mMin);
         setEnd(mMax);
-        mCompletedLines.clear();
-
+//        mCompletedLines.clear();
+        selectLines.clear();
         invalidate();
 
 
     }
 
     public void setMax(int max) {
-        if (max < 0) throw new IllegalArgumentException("max must >= 0");
-        if (max < mMin) throw new IllegalArgumentException("max must >= min");
-
         mMax = max;
         mCount = mMax - mMin + 1;
         setStart(mMin);
         setEnd(mMax);
-        mCompletedLines.clear();
-
+        selectLines.clear();
         invalidate();
 
 //        Debugger.out("max= " + max + ", count=" + mCount);
     }
 
-    public void setCompletedLines(int[] completedLineIndexes) {
-        mCompletedLines.clear();
-        if (completedLineIndexes == null) return;
-        for (int i = 0; i < completedLineIndexes.length; i++) {
-            mCompletedLines.put(completedLineIndexes[i], completedLineIndexes[i]);
+//    public void setCompletedLines(int[] completedLineIndexes) {
+//        mCompletedLines.clear();
+//        if (completedLineIndexes == null) return;
+//        for (int i = 0; i < completedLineIndexes.length; i++) {
+//            mCompletedLines.put(completedLineIndexes[i], completedLineIndexes[i]);
+//        }
+//    }
+
+    public void setCompletedLines(List<AirLineStatus> lines) {
+        selectLines.clear();
+        if (lines == null) return;
+        for (AirLineStatus item : lines) {
+            selectLines.put(item.getIndex(), item);
         }
     }
 //

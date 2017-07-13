@@ -14,7 +14,6 @@
         />
     <xaircraft.seekview.view.ThumbnailSeek
         android:id="@+id/my_th_seek"
-        android:background="#633636"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 </LinearLayout>
