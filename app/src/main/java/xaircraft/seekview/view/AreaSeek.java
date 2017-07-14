@@ -54,6 +54,8 @@ public class AreaSeek extends View {
     private int mCompletedColor;
     private float tickWidth;
     private float firstLineX;
+    private int downLine = 0;
+
 
     private Drawable mStartThumbDrawable;
     private Drawable mEndThumbDrawable;
@@ -130,19 +132,24 @@ public class AreaSeek extends View {
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             if (pressWhat == 0) {
-                int x = (int) event.getX();
-                int y = (int) event.getY();
+                int downX = (int) event.getX();
+                int downY = (int) event.getY();
+                for (int i = 0; i < mCount; i++) {
+                    if (hitTestX(downX, downY, i, tickWidth)) {
+                        downLine = i;
+                    }
+                }
 
-                if (hitTestX(x, y, mStart - mMin, TOUCH_WIDTH) && !isLockStart()) {
+                if (hitTestX(downX, downY, mStart - mMin, TOUCH_WIDTH) && !isLockStart()) {
                     pressWhat = THUMB_START;
                     pressLine = mStart;
-                    pressX = x;
-                    pressY = y;
-                } else if (hitTestX(x, y, mEnd - mMin, TOUCH_WIDTH) && !isLockEnd()) {
+                    pressX = downX;
+                    pressY = downY;
+                } else if (hitTestX(downX, downY, mEnd - mMin, TOUCH_WIDTH) && !isLockEnd()) {
                     pressWhat = THUMB_END;
                     pressLine = mEnd;
-                    pressX = x;
-                    pressY = y;
+                    pressX = downX;
+                    pressY = downY;
                 }
                 return true;
             }
@@ -170,16 +177,30 @@ public class AreaSeek extends View {
                         setEnd(hitCount + mMin);
                     }
                 }
-
+                if (mOnSeekBarChangeListener != null)
+                    mOnSeekBarChangeListener.onSelectChanged(this, mStart, mEnd);
                 invalidate();
                 return true;
+            } else {
+//                int moveX = (int) event.getX();
+//                int moveY = (int) event.getY();
+//                int moveLine = 0;
+//                for (int i = 0; i < mCount; i++) {
+//                    if (hitTestX(moveX, moveY, i, tickWidth)) {
+//                        moveLine = i;
+//                    }
+//                }
+//                int removeLineCount = downLine - moveLine;
+//                if (mOnSeekBarChangeListener != null && mMin + removeLineCount >= 0) {
+//                    mOnSeekBarChangeListener.onLengthChanged(this, mMin + removeLineCount, mMax + removeLineCount);
+//                }
+
             }
         } else {
             pressWhat = 0;
             pressLine = -1;
 
-            if (mOnSeekBarChangeListener != null)
-                mOnSeekBarChangeListener.onRangeChanged(this, mStart, mEnd);
+
             if (mOnSeekBarChangeListener != null)
                 mOnSeekBarChangeListener.onStopTrackingTouch(this);
             invalidate();
@@ -440,11 +461,9 @@ public class AreaSeek extends View {
     public void setStart(int index) {
         if (mStart != index) {
             mStart = index;
-            if (mStart > mMax) mStart = mMax;
-            if (mStart < mMin) mStart = mMin;
             mReverse = mStart > mEnd;
             if (mOnSeekBarChangeListener != null)
-                mOnSeekBarChangeListener.onRangeChanged(this, mStart, mEnd);
+                mOnSeekBarChangeListener.onSelectChanged(this, mStart, mEnd);
             invalidate();
 
 //            Debugger.out("Start= " + index);
@@ -454,11 +473,9 @@ public class AreaSeek extends View {
     public void setEnd(int index) {
         if (mEnd != index) {
             mEnd = index;
-            if (mEnd > mMax) mEnd = mMax;
-            if (mEnd < mMin) mEnd = mMin;
             mReverse = mStart > mEnd;
             if (mOnSeekBarChangeListener != null)
-                mOnSeekBarChangeListener.onRangeChanged(this, mStart, mEnd);
+                mOnSeekBarChangeListener.onSelectChanged(this, mStart, mEnd);
             invalidate();
 
 
@@ -470,8 +487,8 @@ public class AreaSeek extends View {
 
         mMin = min;
         mCount = mMax - mMin + 1;
-        setStart(mMin);
-        setEnd(mMax);
+//        setStart(mMin);
+//        setEnd(mMax);
 //        mCompletedLines.clear();
         selectLines.clear();
         invalidate();
@@ -482,8 +499,8 @@ public class AreaSeek extends View {
     public void setMax(int max) {
         mMax = max;
         mCount = mMax - mMin + 1;
-        setStart(mMin);
-        setEnd(mMax);
+//        setStart(mMin);
+//        setEnd(mMax);
         selectLines.clear();
         invalidate();
 
@@ -525,7 +542,7 @@ public class AreaSeek extends View {
 
     public interface OnSeekBarChangeListener {
 
-        void onRangeChanged(AreaSeek seek, int start, int end);
+        void onSelectChanged(AreaSeek seek, int start, int end);
 
         //        void onStartTrackingTouch(AreaSeek seekBar);
         void onStopTrackingTouch(AreaSeek seekBar);

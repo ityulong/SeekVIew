@@ -12,4 +12,5 @@ public interface ILineStatus {
     int getIndex();
 
     void setIndex(int index);
+
 }

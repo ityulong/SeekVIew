@@ -24,6 +24,8 @@ public class ThumbnailSeek extends View {
     //draw Text Gravity
     public final static int TEXT_GRAVITY_INTERNAL = 0;
     public final static int TEXT_GRAVITY_TOP = 1;
+    public final static int LINE_STATUS_FINISHED = 0;
+    public final static int LINE_STATUS_SELECTED = 1;
 
 
     private Paint mFillPaint;
@@ -57,12 +59,19 @@ public class ThumbnailSeek extends View {
     private int barColor = 0xFFFFFFFF;
     private int barBorderColor = 0X88C7AFAF;
 
+    private int lineSelectedColor = 0x80FFFF00;
+    private int lineFinishedColor = 0xFF3F51B5;
+
+
     private OnDragBarListener mDragListener;
 
     private List<? extends ILineStatus> lines;
 
     private float perPxLine;
     private float perLinePx;
+    private int mStart;
+    private int mEnd;
+    private boolean mReverse;
 
 
     public ThumbnailSeek(Context context) {
@@ -190,17 +199,17 @@ public class ThumbnailSeek extends View {
             drawTextToRect(startStr, endStr, parentR, TEXT_GRAVITY_INTERNAL, canvas);
 
 
-            //画矩形
+            //画总航线条
             mFillPaint.setColor(barColor);
-            int rLeft = (int) sTextWidth + 2;
+            int rLeft = (int) Math.max(sTextWidth, eTextWidth);
             int rTop = height / 2 - barHeight / 2;
-            int rRight = width - (int) eTextWidth;
+            int rRight = width - (int) Math.max(sTextWidth, eTextWidth);
             int rBottom = height / 2 + barHeight / 2;
             rectBar = new Rect(rLeft, rTop, rRight, rBottom);
             perPxLine = (float) mCount / rectBar.width();
             perLinePx = (float) rectBar.width() / mCount;
             canvas.drawRect(rectBar, mFillPaint);
-            //画矩形边框
+            //画航向条边框
             mStrokePaint.setColor(barBorderColor);
             canvas.drawRect(rectBar, mStrokePaint);
 
@@ -215,22 +224,28 @@ public class ThumbnailSeek extends View {
                         startNumber = line.getIndex();
                     finishCount++;
                     //如果下一个未完成就画已完成的航线，并且清零
-                    if ((i +1 < lines.size() && !lines.get(i + 1).isFinished())) {
-                        drawaFinishLines(startNumber, finishCount, canvas);
+                    if ((i + 1 < lines.size() && !lines.get(i + 1).isFinished())) {
+                        drawLinesStatus(startNumber, finishCount, canvas, LINE_STATUS_FINISHED);
                         Log.d("draw_finish_line", "start position:" + startNumber + ", finish count:" + finishCount);
                         finishCount = 0;
                     } else if (i + 1 == lines.size() && finishCount > 0) {
-                        drawaFinishLines(startNumber, finishCount, canvas);
+                        drawLinesStatus(startNumber, finishCount, canvas, LINE_STATUS_FINISHED);
                         Log.d("draw_finish_line", "start position:" + startNumber + ", finish count:" + finishCount);
                         finishCount = 0;
                     }
                 }
             }
 
+            //画选择的航线
+            if (!isReverse())
+                drawLinesStatus(mStart, mEnd - mStart, canvas, LINE_STATUS_SELECTED);
+            else
+                drawLinesStatus(mEnd, mStart - mEnd, canvas, LINE_STATUS_SELECTED);
+
             //画拖动框
             if (isFirstDraw) {
                 dragWidth = (int) ((rRight - rLeft) * dragScale);
-                int Left = (int) sTextWidth + 2;
+                int Left = (int) Math.max(sTextWidth, eTextWidth) + 2;
                 int Top = height / 2 - dragHeight / 2;
                 int Right = Left + dragWidth;
                 int Bottom = Top + dragHeight;
@@ -278,8 +293,14 @@ public class ThumbnailSeek extends View {
                 Paint.FontMetrics fontMetrics = mFillPaint.getFontMetrics();
                 float mTop = fontMetrics.top;//为基线到字体上边框的距离
                 float mBottom = fontMetrics.bottom;//为基线到字体下边框的距离
-                canvas.drawText(startStr, rect.left, rect.centerY() - mTop / 2 - mBottom / 2, mFillPaint);
-                canvas.drawText(endStr, rect.right - eTextWidth, rect.centerY() - mTop / 2 - mBottom / 2, mFillPaint);
+                if (sTextWidth >= eTextWidth) {
+                    canvas.drawText(startStr, rect.left, rect.centerY() - mTop / 2 - mBottom / 2, mFillPaint);
+                    canvas.drawText(endStr, rect.right - Math.max(sTextWidth, eTextWidth), rect.centerY() - mTop / 2 - mBottom / 2, mFillPaint);
+                } else {
+                    canvas.drawText(startStr, rect.left + eTextWidth - sTextWidth, rect.centerY() - mTop / 2 - mBottom / 2, mFillPaint);
+                    canvas.drawText(endStr, rect.right - eTextWidth, rect.centerY() - mTop / 2 - mBottom / 2, mFillPaint);
+                }
+
                 break;
             }
             case TEXT_GRAVITY_TOP: {
@@ -306,12 +327,24 @@ public class ThumbnailSeek extends View {
         void OnChange(int start, int end, List<? extends ILineStatus> lines);
     }
 
-    public void setLines(List<? extends ILineStatus> lines) {
-        if (lines != null && lines.size() > 0)
+    public void setData(List<? extends ILineStatus> lines, int start, int end) {
+        if (lines != null && lines.size() > 0) {
             this.lines = lines;
+        }
+        this.mStart = start;
+        this.mEnd = end;
+        invalidate();
     }
 
-    public void drawaFinishLines(int start, int count, Canvas canvas) {
+    public void drawLinesStatus(int start, int count, Canvas canvas, int lineStatus) {
+        switch (lineStatus) {
+            case LINE_STATUS_FINISHED:
+                mFillPaint.setColor(lineFinishedColor);
+                break;
+            case LINE_STATUS_SELECTED:
+                mFillPaint.setColor(lineSelectedColor);
+                break;
+        }
         //当只有一个像素的时候需要几条航线，如果小于这个值就不画线
         if (count > perPxLine) {
             int left = (int) (rectBar.left + start * perLinePx + 0.5);
@@ -319,10 +352,34 @@ public class ThumbnailSeek extends View {
             int right = (int) (left + perLinePx * count);
             int bottom = (int) rectBar.bottom;
             Rect rect = new Rect(left, top, right, bottom);
-            mFillPaint.setColor(0XFF00FF00);
             Log.d("draw_finish_rect", rect.toString());
             canvas.drawRect(rect, mFillPaint);
         }
 
+    }
+
+    public void setSelectStart(int start) {
+        if (mStart != start) {
+            mStart = start;
+            if (mStart > mCount) mStart = mCount;
+            if (mStart < 0) mStart = 0;
+            mReverse = mStart > mEnd;
+            invalidate();
+        }
+    }
+
+
+    public void setSelectEnd(int end) {
+        if (mEnd != end) {
+            mEnd = end;
+            if (mEnd > mCount) mEnd = mCount;
+            if (mEnd < 0) mEnd = 0;
+            mReverse = mStart > mEnd;
+            invalidate();
+        }
+    }
+
+    public boolean isReverse() {
+        return mReverse;
     }
 }
