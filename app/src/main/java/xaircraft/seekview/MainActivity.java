@@ -2,6 +2,7 @@ package xaircraft.seekview;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,14 +21,21 @@ public class MainActivity extends Activity {
 
 
     private AreaSeek mSeek;
+    private ThumbnailSeek thumbnailSeek;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        findViewById(R.id.btn_show_selected).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                thumbnailSeek.jump2Selected();
+            }
+        });
 
 
-        final ThumbnailSeek thumbnailSeek = (ThumbnailSeek) findViewById(R.id.my_th_seek);
+        thumbnailSeek = (ThumbnailSeek) findViewById(R.id.my_th_seek);
         thumbnailSeek.setCountScale(LINES_COUNT, SHOW_COUNT);
 
         //初始化数据

@@ -69,9 +69,10 @@ public class ThumbnailSeek extends View {
 
     private float perPxLine;
     private float perLinePx;
-    private int mStart;
-    private int mEnd;
+    private int mSelectStart;
+    private int mSelectEnd;
     private boolean mReverse;
+    private int mShowNumber;
 
 
     public ThumbnailSeek(Context context) {
@@ -93,7 +94,12 @@ public class ThumbnailSeek extends View {
 
         dragHeight = Utils.dip2px(getContext(), DRAG_HEIGHT);
 
+        //总航线框
+
+
         mStartThumbDrawable = getResources().getDrawable(R.drawable.widget_area_seekbar_btn_start);
+        Log.d("function_lifecycle", "ThumbnailSeek()");
+
 
 
     }
@@ -139,7 +145,7 @@ public class ThumbnailSeek extends View {
         } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
             if (dClicked) {
                 int x = (int) event.getX();
-                isFirstDraw = false;
+//                isFirstDraw = false;
                 dragRect.left = x - dragWidth / 2;
                 dragRect.right = x + dragWidth / 2;
 
@@ -176,17 +182,21 @@ public class ThumbnailSeek extends View {
     }
 
     public void setCountScale(int count, int showNumber) {
+        Log.d("function_lifecycle", "setCountScale()");
+        mShowNumber = showNumber;
         mCount = count;
         if (mCount > showNumber)
             dragScale = (float) showNumber / mCount;
         else
             throw new RuntimeException("showNumber > count");
+
         invalidate();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        Log.d("function_lifecycle", "onDraw()");
         int height = getHeight();
         int width = getWidth();
         if (mCount > 0) {
@@ -238,9 +248,9 @@ public class ThumbnailSeek extends View {
 
             //画选择的航线
             if (!isReverse())
-                drawLinesStatus(mStart, mEnd - mStart, canvas, LINE_STATUS_SELECTED);
+                drawLinesStatus(mSelectStart, mSelectEnd - mSelectStart, canvas, LINE_STATUS_SELECTED);
             else
-                drawLinesStatus(mEnd, mStart - mEnd, canvas, LINE_STATUS_SELECTED);
+                drawLinesStatus(mSelectEnd, mSelectStart - mSelectEnd, canvas, LINE_STATUS_SELECTED);
 
             //画拖动框
             if (isFirstDraw) {
@@ -254,6 +264,7 @@ public class ThumbnailSeek extends View {
                 canvas.drawRect(dragRect, mFillPaint);
                 mStrokePaint.setColor(dragBorderColor);
                 canvas.drawRect(dragRect, mStrokePaint);
+                isFirstDraw = false;
 
             } else {
 
@@ -262,13 +273,12 @@ public class ThumbnailSeek extends View {
                 mStrokePaint.setColor(dragBorderColor);
                 canvas.drawRect(dragRect, mStrokePaint);
                 Log.d("draw rect", dragRect.toString());
-                //画拖动框上面的文字
-
-                String startCountStr = String.valueOf(bStartCount + 1);
-                String endCountStr = String.valueOf(bEndCount + 1);
-                drawTextToRect(startCountStr, endCountStr, dragRect, TEXT_GRAVITY_TOP, canvas);
 
             }
+            //画拖动框上面的文字
+            String startCountStr = String.valueOf(bStartCount + 1);
+            String endCountStr = String.valueOf(bEndCount + 1);
+            drawTextToRect(startCountStr, endCountStr, dragRect, TEXT_GRAVITY_TOP, canvas);
 
 
         }
@@ -320,6 +330,8 @@ public class ThumbnailSeek extends View {
     }
 
     public void setDragListener(OnDragBarListener listener) {
+        Log.d("function_lifecycle", "setDragListener()");
+
         this.mDragListener = listener;
     }
 
@@ -328,11 +340,13 @@ public class ThumbnailSeek extends View {
     }
 
     public void setData(List<? extends ILineStatus> lines, int start, int end) {
+        Log.d("function_lifecycle", "setData()");
+
         if (lines != null && lines.size() > 0) {
             this.lines = lines;
         }
-        this.mStart = start;
-        this.mEnd = end;
+        this.mSelectStart = start;
+        this.mSelectEnd = end;
         invalidate();
     }
 
@@ -359,27 +373,56 @@ public class ThumbnailSeek extends View {
     }
 
     public void setSelectStart(int start) {
-        if (mStart != start) {
-            mStart = start;
-            if (mStart > mCount) mStart = mCount;
-            if (mStart < 0) mStart = 0;
-            mReverse = mStart > mEnd;
+        Log.d("function_lifecycle", "setSelectStart()");
+
+        if (mSelectStart != start) {
+            mSelectStart = start;
+            if (mSelectStart > mCount) mSelectStart = mCount;
+            if (mSelectStart < 0) mSelectStart = 0;
+            mReverse = mSelectStart > mSelectEnd;
             invalidate();
         }
     }
 
 
     public void setSelectEnd(int end) {
-        if (mEnd != end) {
-            mEnd = end;
-            if (mEnd > mCount) mEnd = mCount;
-            if (mEnd < 0) mEnd = 0;
-            mReverse = mStart > mEnd;
+        Log.d("function_lifecycle", "setSelectEnd()");
+        if (mSelectEnd != end) {
+            mSelectEnd = end;
+            if (mSelectEnd > mCount) mSelectEnd = mCount;
+            if (mSelectEnd < 0) mSelectEnd = 0;
+            mReverse = mSelectStart > mSelectEnd;
             invalidate();
         }
     }
 
     public boolean isReverse() {
         return mReverse;
+    }
+
+    /**
+     * 跳转到已经选择的航线
+     */
+    public void jump2Selected(){
+        if(!isReverse()){
+            dragRect.left = rectBar.left + (int) (perLinePx * mSelectStart);
+            dragRect.right = dragRect.left + dragWidth;
+            bStartCount = mSelectStart;
+            bEndCount = bStartCount + mShowNumber - 1;
+        }
+        else{
+            dragRect.left = rectBar.left + (int) (perLinePx * mSelectEnd);
+            dragRect.right = dragRect.left + dragWidth;
+            bStartCount = mSelectEnd;
+            bEndCount = bStartCount + mShowNumber - 1;
+        }
+
+        if (mDragListener != null) {
+            List<? extends ILineStatus> subLines = lines.subList(bStartCount, bEndCount + 1);
+            mDragListener.OnChange(bStartCount, bEndCount, subLines);
+//            Log.d("sub_lines", "start:" + bStartCount + ", end:" + bEndCount);
+//            Log.d("sub_lines", "in sub list ,start:" + subLines.get(0).getIndex() + ", end:" + subLines.get(subLines.size() - 1).getIndex());
+        }
+        invalidate();
     }
 }

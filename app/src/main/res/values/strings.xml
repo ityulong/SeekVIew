@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">SeekView</string>
+    <string name="show_selected_line">显示已选择的航线</string>
 </resources>
