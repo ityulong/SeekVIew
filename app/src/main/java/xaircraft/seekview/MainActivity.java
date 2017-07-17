@@ -2,6 +2,7 @@ package xaircraft.seekview;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -14,10 +15,10 @@ import xaircraft.seekview.view.AreaSeek;
 import xaircraft.seekview.view.ThumbnailSeek;
 
 public class MainActivity extends Activity {
-    private final static int LINES_COUNT = 999;
-    private final static int SHOW_COUNT = 50;
-    private final static int SELECT_START = 20;
-    private final static int SELECT_END = 200;
+    private final static int LINES_COUNT = 100;
+    private final static int SHOW_COUNT = 24;
+    private final static int SELECT_START = 80;
+    private final static int SELECT_END = 95;
 
 
     private AreaSeek mSeek;
@@ -37,6 +38,7 @@ public class MainActivity extends Activity {
 
         thumbnailSeek = (ThumbnailSeek) findViewById(R.id.my_th_seek);
         thumbnailSeek.setCountScale(LINES_COUNT, SHOW_COUNT);
+        thumbnailSeek.setTouchAirLineBar(true);
 
         //初始化数据
         List<AirLineStatus> status = new ArrayList<>();
@@ -93,6 +95,7 @@ public class MainActivity extends Activity {
         mSeek.setOnSeekBarChangeListener(new AreaSeek.OnSeekBarChangeListener() {
             @Override
             public void onSelectChanged(AreaSeek seek, int start, int end) {
+                Log.d("selected_change", "start is :" + start + ",end is:" + end);
                 thumbnailSeek.setSelectStart(start);
                 thumbnailSeek.setSelectEnd(end);
             }
