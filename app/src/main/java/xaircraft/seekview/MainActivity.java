@@ -19,6 +19,7 @@ public class MainActivity extends Activity {
     private final static int SHOW_COUNT = 24;
     private final static int SELECT_START = 80;
     private final static int SELECT_END = 95;
+    private final static String mStr = "cyl";
 
 
     private AreaSeek mSeek;
