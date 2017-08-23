@@ -20,6 +20,8 @@ public class MainActivity extends Activity {
     private final static int SELECT_START = 80;
     private final static int SELECT_END = 95;
     private final static String mStr = "cyl";
+    private static final String KEY_CYL = "CYL";
+
 
 
     private AreaSeek mSeek;
